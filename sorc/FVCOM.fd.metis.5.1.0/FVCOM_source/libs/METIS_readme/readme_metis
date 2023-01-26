@@ -1,0 +1,150 @@
+Install new version of Metis (currently testing with 5.1.0)
+
+extract on hydra (for example) into  /usr/local/src/metis-5.1.0/
+
+make clean
+mkdir /usr/local/install/metis-5.1.0
+cmake -DCMAKE_INSTALL_PREFIX=/usr/local/install/metis-5.1.0
+make
+make install
+Install Metis on mghpcc
+
+in bash_profile
+module purge
+module load gcc/4.7.4
+
+logout and back into mghpcc
+
+tar xvf metis-5.1.0.tar
+cd metis-5.1.0
+make config prefix=/home/gc72d/install/metis-5.1.0
+make
+make install
+
+
+
+
+Change FVCOM make.inc file
+Note:
+   The name of the "libs" variable is changed to be more generic =>  PARTLIBS
+   We now have an include variable => PARTINCS
+
+
+#--------------------------------------------------------------------------
+#        MULTI_PROCESSOR    INCLUDES PARALLELIZATION WITH MPI
+#                           REQUIRES LINKING MPI LIBRARIES OR COMPILING
+#                           WITH A PRELINKED SCRIPT (mpif90/mpf90/etc)
+#                           DEFAULT: NO PARALLEL CAPABILITY
+#                           UNCOMMENT TO INCLUDE MPI PARALLEL CAPABILITY
+#--------------------------------------------------------------------------
+
+             FLAG_4 = -DMULTIPROCESSOR
+	     FLAG_411 = -DMETIS_5
+             PARTINCS = -I/usr/local/install/metis-5.1.0/gcc-4.4.7/include
+             PARTLIBS = -L/usr/local/install/metis-5.1.0/gcc-4.4.7/lib -lmetis
+
+
+
+            LIBS  =     $(LIBDIR) $(CLIB)  $(PARTLIBS) $(IOLIBS)        $(DTLIBS)\
+                        $(MPILIB) $(GOTMLIB) $(KFLIB) $(BIOLIB) \
+                        $(OILIB) $(VISITLIB) $(PROJLIBS) $(PETSC_LIB)
+
+            INCS  =     $(INCDIR) $(IOINCS) $(GOTMINCS) $(BIOINCS)\
+                         $(VISITINCPATH) $(PROJINCS) $(DTINCS) $(PARTINCS)\
+                         $(PETSC_FC_INCLUDES)
+
+
+
+NOTE, one potential problem is that an older version of METIS lies in the $(LIBDIR) path.  If this happens, PartMeshDual will link to the old library and cause a segmentation fault on call.  On hydra, this will be the case if standard modules are loaded.  We need to unload the old metis and load the module for the new metis.  
+
+module load standard
+module unload metis/gcc-4.4.7
+module load metis-5/gcc-4.4.7
+
+Now, LIBPATH will only include metis-5.1.0
+
+NOTE: At link time, look carefully at the link line to make sure it does not include the old metis libraries. 
+
+
+We have a new version of partition.c.   This version will reside in the FVCOM_source repository rather than in the METIS code directory.  This is our code, not METIS's.   We will build partition.c when we build FVCOM.    Partition is the bridge between FVCOM and METIS.  
+partition.c
+2.3 KB
+
+Change FVCOM makefile 
+Note:
+   Near line 113, a 'partition.c' should be added after 'COBJS:'
+
+
+    MAIN_W = ocpmix.F ocpcre.F ... swancom5.F
+    COBJS = func_pointer.c partition.c
+    BIOGEN = mod_bio_3D.F ...
+
+
+Change FVCOM makedepends file
+Note:
+   Near line 12, a 'partition.o' should be added after 'mod_par.o:'
+
+
+    mod_interp.o : mod_interp.F ... mod_utils.o
+    mod_par.o : mod_par.F ... mod_types.o partition.o
+    mod_ncll.o : ...
+
+
+After changing these two files,  FVCOM should able to build partition.c and link the call in partition.c to PartMeshDual in libmetis.a during link stage. 
+
+
+Modification of FVCOM
+
+The original DOMDEC called our original function partition which had a different number of arguments.  That version of partition called PartMeshDual from an older version of METIS.  This call also had a different number of arguments.  It will be difficult to maintain two versions of DOMDEC  with two versions of partition and two versions of METIS.  We will make a new version of domdec which does hierarchical partitioning but can do the original partitioning as an option.  We will require however that the user include the NML_PARTITION namelist in their runtime file (right now, it is default setting in mod_par.F). 
+
+The only change to the FVCOM coding will thus be an entirely new version of the DOMDEC subroutine in mod_par.F.  We cannot maintain both versions, it will be too difficult to deal with the METIS/partition version issue.  Comment out the old DOMDEC subroutine in mod_par.F and add this one. 
+
+domdec_hier_v1.txt
+11.5 KB
+
+
+Runtime namelist control (right now, there is no need to create the namelist NML_PARTITION in runtime file)
+
+We need to include an additional namelist control file in our runtime file.
+
+Original:  Single-Level Partitioning using the original k-way scheme:
+The minimum namelist which will produce results identical to our original, single level partitioner is:
+
+&NML_PARTITION
+ PART_NLEVS = 1,
+/
+
+Multilevel (Hierarchical) Partitioning:
+The basic controls of a two-level partitioning would be as follows:
+Here we specify two levels (PART_NLEVS=2) with 12 processes on the second level (LEV2_PROC=12) using the kway partitioner on level 1 (LEV1_OPTION_PTYPE=1) and the RCB partitioner on level 2 (LEV2_OPTION_PTYPE=0).  
+&NML_PARTITION
+ PART_NLEVS = 2,
+ LEV2_NPROCS = 12,
+ LEV1_OPTION_PTYPE = 1,
+ LEV2_OPTION_PTYPE = 0,
+/
+
+The full namelist is:
+
+&NML_PARTITION
+ PART_NLEVS = 2,
+ LEV2_NPROCS = 12,
+ LEV1_OPTION_PTYPE = 1,
+ LEV1_OPTION_NITER = 10,
+ LEV1_OPTION_UFACTOR = 30,
+ LEV1_OPTION_IPTYPE = 1,
+ LEV1_OPTION_RTYPE = 1,
+ LEV2_OPTION_PTYPE = 0,
+ LEV2_OPTION_NITER = 10,
+ LEV2_OPTION_UFACTOR = 1,
+ LEV2_OPTION_IPTYPE = 1,
+ LEV2_OPTION_RTYPE = 1,
+/
+
+For more details about PartMeshDual options, see page 28 of METIS 5.1.x Manual.   For METIS options array, see page 20.
+METIS 5.1.x Manual.pdf
+347.0 KB
+
+
+
+ 
