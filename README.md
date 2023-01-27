@@ -6,6 +6,20 @@ Operational Supercomputing System (WCOSS2).
 
 **NOTE: Due to file size limitations on GitHub, only the LMHOFS subfolder in the /fix directory was uploaded. The entire /fix directory is available elsewhere.**
 
+## Overview
+NOS develops and operates Operational Forecast Systems (OFS) that provide users with nowcast (analyses of near-present) and forecast guidance of water levels,
+currents, salinity and water temperature out to 120 hours, four times per day. The OFS are operated under a standardized Coastal Ocean Modeling Framework (COMF)
+at NOAA’s WCOSS.
+
+OFSs are implemented in critical ports, harbors, estuaries, Great Lakes and coastal waters of the United States, and will join the NOS' operational
+oceanographic capabilities to form a national backbone of real-time data, tidal predictions, data management and operational modeling. Currently, NOS operates a
+network of 15 OFS located along the coastal United States, including:
+* Alaska (Cook Inlet)
+* West Coast (Columbia River, San Francisco Bay, West Coast)
+* East Coast (St. Jonhs River, Chesapeake Bay, Delaware Bay, New York, Gulf of Maine)
+* Gulf of Mexico (Tampa Bay and Northern Gulf of Mexico)
+* Great Lakes (Lake Erie, Lake Michigan-Huron, Lake Ontario, Lake Superior)
+
 ## NOAA Open Source Disclaimer
 This repository is a scientific product and is not official communication of the National Oceanic and Atmospheric Administration, or the United States Department of
 Commerce. All NOAA GitHub project code is provided on an 'as is' basis and the user assumes responsibility for its use. Any claims against the Department of Commerce
