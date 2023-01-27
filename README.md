@@ -4,4 +4,4 @@ This repository contains version 3.5.7 of the NOAA/National Ocean Service (NOS) 
 to the NOAA/National Weather Service (NWS)/National Centers for Environmental Prediciton (NCEP) Central Operations (NCO) for implementation at NOAA’s Weather and Climate
 Operational Supercomputing System (WCOSS2).
 
-**NOTE: Due to file size limitations on GitHub, only the LMHOFS subfolder in the /fix directory was uploaded. The entire /fix directory is available elsewhere.
+**NOTE: Due to file size limitations on GitHub, only the LMHOFS subfolder in the /fix directory was uploaded. The entire /fix directory is available elsewhere.**
